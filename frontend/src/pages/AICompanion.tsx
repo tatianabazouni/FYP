@@ -1,125 +1,57 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
+import { Bot, Sparkles, Send, Heart } from 'lucide-react';
 import api from '@/services/api';
-import { motion } from 'framer-motion';
-import { Send, Brain, Target, Flame, ListChecks, Loader2, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
-interface Message {
-  id: string;
-  role: 'user' | 'ai';
-  content: string;
-}
-
-const modes = [
-  { key: 'chat', label: 'Chat', icon: Brain },
-  { key: 'goals', label: 'Goals', icon: Target },
-  { key: 'motivation', label: 'Motivation', icon: Flame },
-  { key: 'priorities', label: 'Priorities', icon: ListChecks },
+const suggestions = [
+  'What made today meaningful?',
+  'Help me break this dream into weekly steps.',
+  'Analyze this journal entry and suggest one reflection.',
 ];
 
 export default function AICompanion() {
-  const [mode, setMode] = useState('chat');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [text, setText] = useState('');
+  const [reply, setReply] = useState('Small moments often become the most important memories.');
   const [loading, setLoading] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const send = async () => {
-    if (!input.trim() || loading) return;
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input.trim() };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput('');
+  const ask = async () => {
+    if (!text.trim() || loading) return;
     setLoading(true);
-
     try {
-      const res = await api.post<{ message: string }>('/ai/chat', { message: userMsg.content, mode });
-      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', content: res.data.message }]);
+      const res = await api.post<{ message: string }>('/ai/chat', { message: text, mode: 'reflection' });
+      setReply(res.data.message);
     } catch {
-      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', content: 'Sorry, I encountered an error. Please try again.' }]);
+      setReply('I am here with you. Try sharing your thoughts in a simpler way and we will reflect together.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="page-header">
-        <h1 className="page-title">AI Companion</h1>
-        <p className="page-subtitle">Your personal growth assistant</p>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-4">
+      <div><h1 className="font-serif text-4xl">Vie.ai Companion</h1><p className="text-slate-600">A warm guide for reflection, goals, and emotional clarity.</p></div>
 
-      {/* Mode tabs */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-        {modes.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setMode(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-              mode === key
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
-      </div>
+      <section className="rounded-3xl border border-white/80 bg-white/90 p-6 shadow-xl">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-[#FFD150] to-[#E5A11F]"><Bot className="h-7 w-7 text-slate-800" /></div>
+          <div><p className="font-semibold">Vie.ai</p><p className="text-xs text-slate-500">Warm • Wise • Encouraging</p></div>
+        </div>
+        <p className="rounded-2xl bg-[#f5f1e8] p-4 text-slate-700">{reply}</p>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-4 pb-4">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center gap-4 opacity-60">
-            <div className="w-16 h-16 rounded-2xl gradient-hero flex items-center justify-center">
-              <Sparkles className="h-8 w-8 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="font-medium">Start a conversation</p>
-              <p className="text-sm text-muted-foreground mt-1">Ask me anything about your goals, habits, or life</p>
-            </div>
-          </div>
-        )}
-        {messages.map((msg) => (
-          <motion.div
-            key={msg.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div className={msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'}>
-              {msg.content}
-            </div>
-          </motion.div>
-        ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="chat-bubble-ai flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Thinking...</span>
-            </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {suggestions.map((s) => (
+            <button key={s} onClick={() => setText(s)} className="rounded-xl bg-white p-3 text-left text-xs shadow hover:bg-[#fffaf2]">
+              <Sparkles className="mr-1 inline h-3.5 w-3.5 text-[#C5005E]" /> {s}
+            </button>
+          ))}
+        </div>
 
-      {/* Input */}
-      <div className="flex gap-2 pt-4 border-t border-border">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && send()}
-          placeholder="Type your message..."
-          className="flex-1"
-        />
-        <Button onClick={send} disabled={loading || !input.trim()} size="icon">
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
+        <div className="mt-4 flex gap-2">
+          <textarea value={text} onChange={(e) => setText(e.target.value)} className="h-24 flex-1 rounded-2xl border p-3" placeholder="Share what is on your mind..." />
+          <button onClick={ask} className="h-12 self-end rounded-xl bg-[#458B73] px-4 text-white"><Send className="h-4 w-4" /></button>
+        </div>
+      </section>
+
+      <p className="text-sm text-slate-500"><Heart className="mr-1 inline h-4 w-4 text-[#C5005E]" />Life is worth living and documenting.</p>
     </div>
   );
 }
